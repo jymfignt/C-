@@ -1,0 +1,52 @@
+
+========== NEW BOOKING [2025-06-06 15:15:51] ==========
+Client Name: jing
+Contact Number: 128
+Booking Time: 2025-06-06 15:15:51
+Booked Transport IDs: C001
+Number of Transports: 1
+================================================
+
+========== NEW BOOKING [2025-06-06 15:20:15] ==========
+Client Name: jin
+Contact Number: 129
+Booking Time: 2025-06-06 15:20:15
+Booked Transport IDs: B001
+Number of Transports: 1
+================================================
+
+========== NEW BOOKING [2025-06-10 14:24:14] ==========
+Client Name: wer
+Contact Number: 234567
+Booking Time: 2025-06-10 14:24:14
+Booked Transport IDs: S001, S001, S001
+Number of Transports: 3
+================================================
+Client Name: dory
+Contact Number: 123456
+Booked: C001,
+---
+Client Name: sdr
+Contact Number: 123456
+Booked: B001,L001,
+---
+Client Name: sdr
+Contact Number: 123456
+Booked: C001,
+---
+Client Name: wer
+Contact Number: 123456
+Booked: S001,
+---
+Client Name: dory
+Contact Number: 123456
+Booked: B001,S001,
+---
+Client Name: dory
+Contact Number: 123456
+Booked: B001,S001,
+---
+Client Name: selina
+Contact Number: 234567
+Booked: C001,P001,
+---
