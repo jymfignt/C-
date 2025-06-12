@@ -11,11 +11,14 @@ void customerMenu(TransportSystem& ts) //iteraction
     cout << "Enter your name: "; cin >> name;
     cout << "Enter the contact number: "; cin >> contact;
     cout<<"Got it.\n"
-    <<"\nWe have multiple modes of transportation that may carry people or goods or both.\n";
+    <<"\nWe have multiple modes of transportation" 
+        <<"that may carry people or goods or both.\n";
     cout << "Enter the number of people: "; cin >> people;
     cout << "Enter total weight of goods(kg): "; cin >> weight;
 
-    auto matched = ts.matchTransport(people, weight);  //finding the match one
+    auto matched = ts.matchTransport(people, weight);  
+    //finding the match one
+    
     if (matched.empty()) {
         cout << "No suitable transport found." << endl;
         return;
@@ -29,7 +32,9 @@ void customerMenu(TransportSystem& ts) //iteraction
     }
 
     cout << "\nEnter indices of transports to book (0 to finish): ";
-    vector<shared_ptr<Transport>> selected;  //save multiple selected pointers to Transport, much safer
+    vector<shared_ptr<Transport>> selected;  
+    //save multiple selected pointers to Transport, much safer
+    
     while (true) {
         int idx;
         cin >> idx;
