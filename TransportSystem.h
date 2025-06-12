@@ -29,7 +29,7 @@ private:
         while (getline(fin, line))
         {
             stringstream ss(line);
-            string id, name, category;
+            string id, name, category，availableStr;
             int p, w;
             getline(ss, id, ',');
             getline(ss, name, ',');
@@ -37,8 +37,16 @@ private:
             ss >> p;
             ss.ignore();
             ss >> w;
+            ss.ignore(); 
+            getline(ss, availableStr);
             try {
-            fleet.push_back(createTransportByCategory(id, name, category, p, w));
+            auto transport = createTransportByCategory(id, name, category, p, w);
+
+            // set available
+            bool isAvailable = (availableStr == "1");
+            transport->setAvailable(isAvailable);
+
+            fleet.push_back(transport);
             } catch (...) {
             cout << "Error loading transport: " << line << endl;
             }
@@ -47,11 +55,12 @@ private:
 public:
     TransportSystem() {reloadFleet();}
 
-    void reloadFleet() {loadFleetFromFile("fleet.txt"); } //加载txt文件，读取信息
+    void reloadFleet() {loadFleetFromFile("fleet.txt"); } 
     void saveFleetToFile(const string& filename)
     {
         if (fleet.empty()) {
-        cout << "Warning: Fleet is empty. Skipping saving to file to prevent overwriting." << endl;
+        cout << "Warning: Fleet is empty. "
+         <<"Skipping saving to file to prevent overwriting." << endl;
         return;
     }
         ofstream fout(filename);
@@ -91,13 +100,18 @@ public:
     void recordBooking(Client client, const vector<shared_ptr<Transport>>& transports)
     {
         vector<string> ids;
-        for (auto& t : transports) ids.push_back(t->getID());
-        bookings[client.contact] = ids;
-        clientInfo[client.contact] = client;
+         for (auto& t : transports)
+        {
+            ids.push_back(t->getID());
+            t->setAvailable(false);  
+        }
+    // If there is a previous reservation, it will be appended
+    bookings[client.contact].insert(bookings[client.contact].end(), ids.begin(), ids.end());
+    clientInfo[client.contact] = client;
     }
     void saveBookingsToFile(const string& filename)
 {
-    ofstream fout(filename, ios::app); // 改为追加写入
+    ofstream fout(filename);
     for (const auto& entry : bookings)
     {
         const string& contact = entry.first;
