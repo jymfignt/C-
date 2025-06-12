@@ -1,49 +1,82 @@
 #include <iostream>
 #include "TransportSystem.h"
+#include <bits/stdc++.h>
+#include <windows.h>
 using namespace std;
 
-void customerMenu(TransportSystem& ts) //iteraction
+void rgb_init(){    //prevent ANSI garbled characters
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);   //input handle
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);   //output handle
+    DWORD dwInMode, dwOutMode;
+    GetConsoleMode(hIn, &dwInMode);   
+    GetConsoleMode(hOut, &dwOutMode); 
+    dwInMode |= 0x0200;
+    dwOutMode |=0x0004;
+    SetConsoleMode(hIn,dwInMode);    
+    SetConsoleMode(hOut,dwOutMode);    
+}
+void rgb_set(int wr, int wg,int wb,int br,int bg, int bb){
+    printf("\033[38;2;%d;%d;%dm\033[48;2;%d;%dm",wr,wg,wb,br,bg,bb);
+    // \033[38 indicates forehead，\033[48 indicates background，三个%d indicates mixed numbers
+}
+void customerMenu(TransportSystem& ts) //iteraction with customer
 {
-    ts.reloadFleet();   //read the txt
+    ts.reloadFleet();   //read the txt file
     string name, contact;
     int people, weight;
     cout<<"\nWelcome to our company to choose transportation!\n";
     cout << "Enter your name: "; cin >> name;
     cout << "Enter the contact number: "; cin >> contact;
     cout<<"Got it.\n"
-    <<"\nWe have multiple modes of transportation" 
-        <<"that may carry people or goods or both.\n";
+    <<"\nWe have multiple modes of transportation that may carry people or goods or both.\n";
     cout << "Enter the number of people: "; cin >> people;
     cout << "Enter total weight of goods(kg): "; cin >> weight;
 
-    auto matched = ts.matchTransport(people, weight);  
-    //finding the match one
-    
+    auto matched = ts.matchTransport(people, weight);  //finding the match one
     if (matched.empty()) {
         cout << "No suitable transport found." << endl;
         return;
     }
 //else, has matching ones
-    cout << "\nAvailable options:\n";
-    for (size_t i = 0; i < matched.size(); ++i) //notice: later have i+1, then use ++i
+   cout << "\nAvailable options:\n";
+    for (size_t i = 0; i < matched.size(); ++i) //notice: ++i
     {
-        cout << i + 1 << ". " << matched[i]->getID() << " - " << matched[i]->getName()
-             << " (" << matched[i]->getType() << ")" << endl;
-    }
+        cout << i + 1 << ". " << matched[i]->getID()
+        << " - " << matched[i]->getName()
+        << " (" << matched[i]->getType() << ")" ;
 
+    //cout << " [Debug: Available=" << matched[i]->isAvailable() << "]";
+        if (!matched[i]->isAvailable()) {
+        cout << " [Already Booked]";
+    }
+    cout << endl;
+    }
     cout << "\nEnter indices of transports to book (0 to finish): ";
     vector<shared_ptr<Transport>> selected;  
     //save multiple selected pointers to Transport, much safer
-    
     while (true) {
         int idx;
         cin >> idx;
         if (idx == 0) break;
         if (idx >= 1 && idx <= matched.size())
-            selected.push_back(matched[idx - 1]);  //add into selected
+        {
+            if (!matched[idx-1]->isAvailable()) {
+                cout << "This transport is already booked."
+                << "Please choose another one." << endl;
+                continue;
+            }
+            if (find(selected.begin(), selected.end(),
+                     matched[idx - 1]) != selected.end()) {
+                cout << "You have already selected this transport." << endl;
+                cout << "\nEnter indices of transports to book (0 to finish): ";
+                continue;
+            }
+                selected.push_back(matched[idx - 1]);  //add into selected
+                cout << selected.size() << " transport(s) selected." << endl;
+        }
         else
             cout << "Invalid index." << endl;
-        cout << "Enter indices of transports to book (0 to finish): ";
+            cout << "Enter indices of transports to book (0 to finish): ";
     }
 
     if (!selected.empty()) //if selected
@@ -119,15 +152,18 @@ bool verifyAdmin() {
 }
 
 int main() {
+    rgb_init();
     TransportSystem ts;
     ts.reloadFleet();
     int identity;
 
+    rgb_set(255,255,255,225,255,255);
     while (true) {
         cout << "\n==== Universal Transports ====\n";
         cout << "1. Customer\n" ;
         cout << "2. Administrator\n";
         cout << "0. Exit\n";
+        //rgb_set(255,255,255,235,148,247);
         cout << "Please enter your identity: ";
         cin >> identity;
 
@@ -146,5 +182,4 @@ int main() {
 
     return 0;
 }
-
 
