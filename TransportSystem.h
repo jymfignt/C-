@@ -1,190 +1,206 @@
-
-// TransportSystem.h
-#ifndef TRANSPORTSYSTEM_H
-#define TRANSPORTSYSTEM_H
-#include <vector>
-#include <map>
-#include <memory>
-#include <string>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
 #include <iostream>
-#include "LandTransport.h"
-#include "WaterTransport.h"
-#include "AirTransport.h"
-#include "Client.h"
+#include "TransportSystem.h"
+#include <bits/stdc++.h>
+#include <windows.h>
 using namespace std;
 
-class TransportSystem {
-private:
-    vector<shared_ptr<Transport>> fleet;
-    map<string, vector<string>> bookings; // contact -> transport IDs
-    map<string, Client> clientInfo;
-    void loadFleetFromFile(const string& filename)
-    {
-        fleet.clear();
-        ifstream fin(filename);
-        string line;
-        while (getline(fin, line))
-        {
-            stringstream ss(line);
-            string id, name, category，availableStr;
-            int p, w;
-            getline(ss, id, ',');
-            getline(ss, name, ',');
-            getline(ss, category, ',');
-            ss >> p;
-            ss.ignore();
-            ss >> w;
-            ss.ignore(); 
-            getline(ss, availableStr);
-            try {
-            auto transport = createTransportByCategory(id, name, category, p, w);
+void rgb_init(){    //prevent ANSI garbled characters
+    HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);   //input handle
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);   //output handle
+    DWORD dwInMode, dwOutMode;
+    GetConsoleMode(hIn, &dwInMode);
+    GetConsoleMode(hOut, &dwOutMode);
+    dwInMode |= 0x0200;
+    dwOutMode |=0x0004;
+    SetConsoleMode(hIn,dwInMode);
+    SetConsoleMode(hOut,dwOutMode);
+}
+void rgb_set(int wr, int wg, int wb, int br = 0, int bg = 0, int bb = 0){
+    if (br + bg + bb == 0)
+        printf("\033[38;2;%d;%d;%dm", wr, wg, wb); // 仅字体
+    else
+        printf("\033[38;2;%d;%d;%dm\033[48;2;%d;%d;%dm", wr, wg, wb, br, bg, bb); // 字体+背景
+}
 
-            // set available
-            bool isAvailable = (availableStr == "1");
-            transport->setAvailable(isAvailable);
+void reset_color() {
+    printf("\033[0m");
+}
 
-            fleet.push_back(transport);
-            } catch (...) {
-            cout << "Error loading transport: " << line << endl;
-            }
-        }
-    }
-public:
-    TransportSystem() {reloadFleet();}
+void customerMenu(TransportSystem& ts) //iteraction with customer
+{
+    ts.reloadFleet();   //read the txt file
+    string name, contact;
+    int people, weight;
+    cout<<"\nWelcome to our company to choose transportation!\n";
+    cout << "Enter your name: "; cin >> name;
+    cout << "Enter the contact number: "; cin >> contact;
+    cout<<"Got it.\n"
+    <<"\nWe have multiple modes of transportation that may carry people or goods or both.\n";
+    cout << "Enter the number of people: "; cin >> people;
+    cout << "Enter total weight of goods(kg): "; cin >> weight;
 
-    void reloadFleet() {loadFleetFromFile("fleet.txt"); } 
-    void saveFleetToFile(const string& filename)
-    {
-        if (fleet.empty()) {
-        cout << "Warning: Fleet is empty. "
-         <<"Skipping saving to file to prevent overwriting." << endl;
+    auto matched = ts.matchTransport(people, weight);  //finding the match one
+    if (matched.empty()) {
+        MessageBox(NULL, "No suitable transport found.", "Match Failed", MB_OK | MB_ICONWARNING);
         return;
     }
-        ofstream fout(filename);
-        for (auto& t : fleet) {
-            fout << t->serialize() << endl;
-        }
-    }
-    void listFleet() {
-    for (const auto& t : fleet) {
-        cout << t->getID() << " | "
-             << t->getName() << " | "
-             << t->getCategory() << " | "
-             << t->getPeople() << " seats | "
-             << t->getWeight() << " kg | "
-             << "Fuel: " << t->getFuel() << "L | "
-             << "Speed: " << t->getSpeed() << "km/h\n";
-    }
-}
-    shared_ptr<Transport> createTransportByCategory(string id, string name, string category, int p, int w)
+//else, has matching ones
+   cout << "\nAvailable options:\n";
+    for (size_t i = 0; i < matched.size(); ++i) //notice: ++i
     {
-    if (category == "land") return make_shared<LandTransport>(id, name, p, w);
-    if (category == "water") return make_shared<WaterTransport>(id, name, p, w);
-    if (category == "air") return make_shared<AirTransport>(id, name, p, w);
-    throw invalid_argument("Unknown category: " + category);
-    }
-    vector<shared_ptr<Transport>> matchTransport(int people, int weight) //查找合适交通工具,如果有返回
-    {
-        vector<shared_ptr<Transport>> result;
-        for (const auto& t : fleet) {
-            if (t->getPeople() >= people && t->getWeight() >= weight) {
-                result.push_back(t);
-            }
-        }
-        return result;
-    }
-//customer information, selected vector
-    void recordBooking(Client client, const vector<shared_ptr<Transport>>& transports)
-    {
-        vector<string> ids;
-         for (auto& t : transports)
-        {
-            ids.push_back(t->getID());
-            t->setAvailable(false);  
-        }
-    // If there is a previous reservation, it will be appended
-    bookings[client.contact].insert(bookings[client.contact].end(), ids.begin(), ids.end());
-    clientInfo[client.contact] = client;
-    }
-    void saveBookingsToFile(const string& filename)
-{
-    ofstream fout(filename);
-    for (const auto& entry : bookings)
-    {
-        const string& contact = entry.first;
-        const vector<string>& ids = entry.second;
-        const Client& c = clientInfo[contact];
-        fout << "Client Name: " << c.name << endl;
-        fout << "Contact Number: " << c.contact << endl;
-        fout << "Booked: ";
-        for (const auto& id : ids) fout << id << ",";
-        fout << "\n---\n";
-    }
-}
-    void addNewTransport()
-    {
-        string id, name, category;
-        int p, w;
-        cout << "Enter ID: "; cin >> id;
-        cout << "Enter Name: "; cin >> name;
-        cout << "Enter Category (land/water/air): "; cin >> category;
-        cout << "Enter max people: ";
-        while (!(cin >> p))
-        {
-            cin.clear();
-            cin.ignore(1000, '\n');
-            cout << "Invalid input. Enter a number for max people: ";
-        }
-        cout << "Enter max weight: ";
-        while (!(cin >> w))
-        {
-            cin.clear();
-            cin.ignore(1000, '\n');
-            cout << "Invalid input. Enter a number for max weight: ";
-        }
-        try {
-            auto t = createTransportByCategory(id, name, category, p, w);
-            fleet.push_back(t);
-            cout << "Transport added successfully.\n";
-        } catch (const exception& e) {
-            cout << "Error: " << e.what() << endl;
-        }
-}
-    void deleteTransport(string id) {
-        for (auto it = fleet.begin(); it != fleet.end(); ++it) {
-            if ((*it)->getID() == id) {
-                fleet.erase(it);
-                cout << "Deleted." << endl;
-                return;
-            }
-        }
-        cout << "Not found." << endl;
-    }
-    void modifyTransport(string id, int newPeople, int newWeight) {
-    for (auto it = fleet.begin(); it != fleet.end(); ++it) {
-        if ((*it)->getID() == id) {
-            string name = (*it)->getName();
-            string category = (*it)->getCategory();
+        cout << i + 1 << ". " << matched[i]->getID()
+        << " - " << matched[i]->getName()
+        << " (" << matched[i]->getType() << ")" ;
 
-            fleet.erase(it);
-            try {
-    auto newT = createTransportByCategory(id, name, category, newPeople, newWeight);
-    fleet.erase(it);
-    fleet.push_back(newT);
-    cout << "Modified." << endl;
-} catch (...) {
-    cout << "Modification failed. Keeping original." << endl;
+    //cout << " [Debug: Available=" << matched[i]->isAvailable() << "]";
+        if (!matched[i]->isAvailable()) {
+        cout << " [Already Booked]";
+    }
+    cout << endl;
+    }
+    cout << "\nEnter indices of transports to book (0 to finish): ";
+    vector<shared_ptr<Transport>> selected;
+    //save multiple selected pointers to Transport, much safer
+    while (true) {
+        int idx;
+        cin >> idx;
+        if (idx == 0) break;
+        if (idx >= 1 && idx <= matched.size())
+        {
+            if (!matched[idx-1]->isAvailable()) {
+                cout << "This transport is already booked."
+                << "Please choose another one." << endl;
+                continue;
+            }
+            if (find(selected.begin(), selected.end(),
+                     matched[idx - 1]) != selected.end()) {
+                MessageBox(NULL, "You have already selected this transport.", "Duplicate Selection", MB_OK | MB_ICONWARNING);
+                cout << "\nEnter indices of transports to book (0 to finish): ";
+                continue;
+            }
+                selected.push_back(matched[idx - 1]);  //add into selected
+                cout << selected.size() << " transport(s) selected." << endl;
+        }
+        else
+            cout << "Invalid index." << endl;
+            cout << "Enter indices of transports to book (0 to finish): ";
+    }
+
+    if (!selected.empty()) //if selected
+    {
+        ts.recordBooking(Client(name, contact), selected);
+        ts.saveFleetToFile("fleet.txt");
+        ts.saveBookingsToFile("bookings.txt");
+        MessageBox(NULL, "Booking confirmed!", "Success", MB_OK | MB_ICONINFORMATION);
+        for (auto& t : selected) cout << t->getID() << " ";
+        cout << endl;
+        cout<<"Name: ";
+        for (auto& t : selected) cout << t->getName() << " ";
+        cout << endl;
+    }
 }
-            return;
+
+void adminMenu(TransportSystem& ts)
+{
+    ts.reloadFleet();
+    int choice;
+    do {
+        rgb_set(0, 50, 100, 200, 230, 255); // 字深蓝，背景浅蓝
+        cout << "\n--- Admin Panel ---\n";
+        reset_color();
+
+        // 菜单选项字体不同颜色
+        rgb_set(60, 179, 113);  cout << "1. Add Transport\n";       reset_color();
+        rgb_set(255, 140, 0);   cout << "2. Delete Transport\n";    reset_color();
+        rgb_set(138, 43, 226);  cout << "3. Modify Transport\n";    reset_color();
+        rgb_set(0, 206, 209);   cout << "4. View Fleet\n";          reset_color();
+        rgb_set(220, 20, 60);   cout << "0. Back to Main Menu\n";   reset_color();
+
+        rgb_set(0, 128, 0);
+        cout << "Choice: ";
+        reset_color();
+        cin >> choice;
+
+        if (choice == 1) {
+            ts.addNewTransport();
+            ts.saveFleetToFile("fleet.txt");
+            MessageBox(NULL, "Transport added successfully.", "Success", MB_OK | MB_ICONINFORMATION);
+        }
+        else if (choice == 2) {
+            string id;
+            rgb_set(0, 128, 0); cout << "Enter transport ID to delete: "; reset_color();
+            cin >> id;
+            ts.deleteTransport(id);
+            ts.saveFleetToFile("fleet.txt");
+        }
+        else if (choice == 3) {
+            string id;
+            int p, w;
+            rgb_set(0, 128, 0); cout << "Enter ID to modify: "; reset_color();
+            cin >> id;
+            cout << "New max people: ";
+            cin >> p;
+            cout << "New max weight: ";
+            cin >> w;
+            ts.modifyTransport(id, p, w);
+            ts.saveFleetToFile("fleet.txt");
+        }
+        else if (choice == 4) {
+            ts.reloadFleet();
+            ts.listFleet();
+        }
+    } while (choice != 0);
+}
+bool verifyAdmin() {
+    string password;
+    for (int i = 0; i < 3; ++i) {
+        cout << "Enter admin password: ";
+        cin >> password;
+        if (password == "thisispasswd") return true;
+        MessageBox(NULL, "Incorrect password. Try again.", "Authentication Failed", MB_OK | MB_ICONERROR);
+    }
+    MessageBox(NULL, "Too many failed attempts. Returning to main menu.", "Access Denied", MB_OK | MB_ICONWARNING);
+    return false;
+}
+
+int main() {
+    rgb_init();
+    TransportSystem ts;
+    ts.reloadFleet();
+    int identity;
+
+    while (true) {
+        rgb_set(0, 50, 100, 200, 230, 255); // 蓝底浅蓝字
+        cout << "\n==== Universal Transports ====\n";
+        reset_color();
+
+        rgb_set(255, 105, 180);  cout << "1. Customer\n";        reset_color();
+        rgb_set(30, 144, 255);   cout << "2. Administrator\n";   reset_color();
+        rgb_set(255, 69, 0);     cout << "0. Exit\n";            reset_color();
+
+        rgb_set(0, 128, 0); // 输入提示绿色
+        cout << "Please enter your identity: ";
+        reset_color();
+        cin >> identity;
+
+        if (identity == 0) {
+            rgb_set(0, 128, 0); cout << "Exiting...\n"; reset_color();
+            break;
+        }
+        else if (identity == 1) customerMenu(ts);
+        else if (identity == 2) {
+            if (verifyAdmin()) adminMenu(ts);
+        }
+        else {
+            rgb_set(200, 0, 0);
+            MessageBox(NULL, "Invalid input, try again.", "Error", MB_OK | MB_ICONERROR);
+            reset_color();
         }
     }
-    cout << "Not found." << endl;
- }
-};
-#endif //TRANSPORTSYSTEM_H
+
+    return 0;
+}
+
 
 
 
