@@ -8,17 +8,24 @@ void rgb_init(){    //prevent ANSI garbled characters
     HANDLE hIn = GetStdHandle(STD_INPUT_HANDLE);   //input handle
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);   //output handle
     DWORD dwInMode, dwOutMode;
-    GetConsoleMode(hIn, &dwInMode);   
-    GetConsoleMode(hOut, &dwOutMode); 
+    GetConsoleMode(hIn, &dwInMode);
+    GetConsoleMode(hOut, &dwOutMode);
     dwInMode |= 0x0200;
     dwOutMode |=0x0004;
-    SetConsoleMode(hIn,dwInMode);    
-    SetConsoleMode(hOut,dwOutMode);    
+    SetConsoleMode(hIn,dwInMode);
+    SetConsoleMode(hOut,dwOutMode);
 }
-void rgb_set(int wr, int wg,int wb,int br,int bg, int bb){
-    printf("\033[38;2;%d;%d;%dm\033[48;2;%d;%dm",wr,wg,wb,br,bg,bb);
-    // \033[38 indicates forehead，\033[48 indicates background，三个%d indicates mixed numbers
+void rgb_set(int wr, int wg, int wb, int br = 0, int bg = 0, int bb = 0){
+    if (br + bg + bb == 0)
+        printf("\033[38;2;%d;%d;%dm", wr, wg, wb); // 仅字体
+    else
+        printf("\033[38;2;%d;%d;%dm\033[48;2;%d;%d;%dm", wr, wg, wb, br, bg, bb); // 字体+背景
 }
+
+void reset_color() {
+    printf("\033[0m");
+}
+
 void customerMenu(TransportSystem& ts) //iteraction with customer
 {
     ts.reloadFleet();   //read the txt file
@@ -34,7 +41,7 @@ void customerMenu(TransportSystem& ts) //iteraction with customer
 
     auto matched = ts.matchTransport(people, weight);  //finding the match one
     if (matched.empty()) {
-        cout << "No suitable transport found." << endl;
+        MessageBox(NULL, "No suitable transport found.", "Match Failed", MB_OK | MB_ICONWARNING);
         return;
     }
 //else, has matching ones
@@ -52,7 +59,7 @@ void customerMenu(TransportSystem& ts) //iteraction with customer
     cout << endl;
     }
     cout << "\nEnter indices of transports to book (0 to finish): ";
-    vector<shared_ptr<Transport>> selected;  
+    vector<shared_ptr<Transport>> selected;
     //save multiple selected pointers to Transport, much safer
     while (true) {
         int idx;
@@ -67,7 +74,7 @@ void customerMenu(TransportSystem& ts) //iteraction with customer
             }
             if (find(selected.begin(), selected.end(),
                      matched[idx - 1]) != selected.end()) {
-                cout << "You have already selected this transport." << endl;
+                MessageBox(NULL, "You have already selected this transport.", "Duplicate Selection", MB_OK | MB_ICONWARNING);
                 cout << "\nEnter indices of transports to book (0 to finish): ";
                 continue;
             }
@@ -84,7 +91,7 @@ void customerMenu(TransportSystem& ts) //iteraction with customer
         ts.recordBooking(Client(name, contact), selected);
         ts.saveFleetToFile("fleet.txt");
         ts.saveBookingsToFile("bookings.txt");
-        cout << "\nBooking confirmed.\nTransport IDs: ";
+        MessageBox(NULL, "Booking confirmed!", "Success", MB_OK | MB_ICONINFORMATION);
         for (auto& t : selected) cout << t->getID() << " ";
         cout << endl;
         cout<<"Name: ";
@@ -98,32 +105,38 @@ void adminMenu(TransportSystem& ts)
     ts.reloadFleet();
     int choice;
     do {
+        rgb_set(0, 50, 100, 200, 230, 255); // 字深蓝，背景浅蓝
         cout << "\n--- Admin Panel ---\n";
-        cout << "1. Add Transport\n";
-        cout << "2. Delete Transport\n";
-        cout << "3. Modify Transport\n";
-        cout << "4. View Fleet\n";
-        cout << "0. Back to Main Menu\n";
+        reset_color();
+
+        // 菜单选项字体不同颜色
+        rgb_set(60, 179, 113);  cout << "1. Add Transport\n";       reset_color();
+        rgb_set(255, 140, 0);   cout << "2. Delete Transport\n";    reset_color();
+        rgb_set(138, 43, 226);  cout << "3. Modify Transport\n";    reset_color();
+        rgb_set(0, 206, 209);   cout << "4. View Fleet\n";          reset_color();
+        rgb_set(220, 20, 60);   cout << "0. Back to Main Menu\n";   reset_color();
+
+        rgb_set(0, 128, 0);
         cout << "Choice: ";
+        reset_color();
         cin >> choice;
 
         if (choice == 1) {
             ts.addNewTransport();
             ts.saveFleetToFile("fleet.txt");
+            MessageBox(NULL, "Transport added successfully.", "Success", MB_OK | MB_ICONINFORMATION);
         }
-        else if (choice == 2)
-        {
+        else if (choice == 2) {
             string id;
-            cout << "Enter transport ID to delete: ";
+            rgb_set(0, 128, 0); cout << "Enter transport ID to delete: "; reset_color();
             cin >> id;
             ts.deleteTransport(id);
             ts.saveFleetToFile("fleet.txt");
         }
-        else if (choice == 3)
-        {
+        else if (choice == 3) {
             string id;
             int p, w;
-            cout << "Enter ID to modify: ";
+            rgb_set(0, 128, 0); cout << "Enter ID to modify: "; reset_color();
             cin >> id;
             cout << "New max people: ";
             cin >> p;
@@ -132,8 +145,7 @@ void adminMenu(TransportSystem& ts)
             ts.modifyTransport(id, p, w);
             ts.saveFleetToFile("fleet.txt");
         }
-        else if (choice == 4)
-        {
+        else if (choice == 4) {
             ts.reloadFleet();
             ts.listFleet();
         }
@@ -145,9 +157,9 @@ bool verifyAdmin() {
         cout << "Enter admin password: ";
         cin >> password;
         if (password == "thisispasswd") return true;
-        cout << "Incorrect. Try again." << endl;
+        MessageBox(NULL, "Incorrect password. Try again.", "Authentication Failed", MB_OK | MB_ICONERROR);
     }
-    cout << "Too many failed attempts. Returning to main menu.\n";
+    MessageBox(NULL, "Too many failed attempts. Returning to main menu.", "Access Denied", MB_OK | MB_ICONWARNING);
     return false;
 }
 
@@ -157,27 +169,33 @@ int main() {
     ts.reloadFleet();
     int identity;
 
-    rgb_set(255,255,255,225,255,255);
     while (true) {
+        rgb_set(0, 50, 100, 200, 230, 255); // 蓝底浅蓝字
         cout << "\n==== Universal Transports ====\n";
-        cout << "1. Customer\n" ;
-        cout << "2. Administrator\n";
-        cout << "0. Exit\n";
-        //rgb_set(255,255,255,235,148,247);
+        reset_color();
+
+        rgb_set(255, 105, 180);  cout << "1. Customer\n";        reset_color();
+        rgb_set(30, 144, 255);   cout << "2. Administrator\n";   reset_color();
+        rgb_set(255, 69, 0);     cout << "0. Exit\n";            reset_color();
+
+        rgb_set(0, 128, 0); // 输入提示绿色
         cout << "Please enter your identity: ";
+        reset_color();
         cin >> identity;
 
-        if (identity == 0)
-        {
-            cout<<"Exiting...\n";
+        if (identity == 0) {
+            rgb_set(0, 128, 0); cout << "Exiting...\n"; reset_color();
             break;
         }
         else if (identity == 1) customerMenu(ts);
         else if (identity == 2) {
-        if (verifyAdmin()) adminMenu(ts);
+            if (verifyAdmin()) adminMenu(ts);
         }
-
-        else cout << "Invalid input, try again." << endl;
+        else {
+            rgb_set(200, 0, 0);
+            MessageBox(NULL, "Invalid input, try again.", "Error", MB_OK | MB_ICONERROR);
+            reset_color();
+        }
     }
 
     return 0;
