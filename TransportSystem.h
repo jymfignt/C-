@@ -129,7 +129,9 @@ public:
         int p, w;
         cout << "Enter ID: "; cin >> id;
         cout << "Enter Name: "; cin >> name;
-        cout << "Enter Category (land/water/air): "; cin >> category;
+        cout << "Enter Category (land/water/air): ";
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+        getline(cin, category);
         cout << "Enter max people: ";
         while (!(cin >> p))
         {
@@ -184,7 +186,6 @@ public:
  }
 };
 #endif //TRANSPORTSYSTEM_H
-
 
 
 
