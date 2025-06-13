@@ -1,13 +1,13 @@
-C001,Car A,land,4,500
-L001,Lorry X,land,2,3000
-T001,Trucking B,land,2,2000
-R001,Railway C,land,100,5000
-B001,Bus Transport D,land,50,3000
-B002,Boat Sky,water,10,1500
-S001,Container Ship Queen,water,100,20000
-F001,Ferry A,water,30,1000
-B003,Bulk Carrier B,water,20,800
-P001,Passenger Aircraft Z,air,150,10000
-H001,Helicopter H,air,6,800
-E001,Express Air Freight F,air,0,50
-C002,Cargo Aircraft E,air,20,200
+C001,Car A,land,4,500,1
+L001,Lorry X,land,2,3000,1
+T001,Trucking B,land,2,2000,1
+R001,Railway C,land,100,5000,1
+B001,Bus Transport D,land,50,3000,1
+B002,Boat Sky,water,10,1500,1
+S001,Container Ship Queen,water,100,20000,1
+F001,Ferry A,water,30,1000,1
+B003,Bulk Carrier B,water,20,800,1
+P001,Passenger Aircraft Z,air,150,10000,1
+H001,Helicopter H,air,6,800,1
+E001,Express Air Freight F,air,0,50,1
+C002,Cargo Aircraft E,air,20,200,1
